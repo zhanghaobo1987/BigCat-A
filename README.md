@@ -8,9 +8,9 @@
 
 | 部分 | 状态 | 说明 |
 |---|---|---|
-| `index.html` 网页命令生成器 | ✅ v0.1.0 | 单文件、零依赖、纯本地生成不上传；GitHub Pages 直接托管此文件即可 |
+| `index.html` 网页命令生成器 | ✅ v0.1.0 上线 | 单文件、零依赖、纯本地生成不上传；GitHub Pages：https://zhanghaobo1987.github.io/BigCat-A/ |
 | `bigcata.sh` 主脚本 | ⏳ 下一步 | Sing-box + Xray + Cloudflared-Argo 三内核，按网页生成的环境变量无交互安装 |
-| 发布流水线 `bigcata_release.py` | ⏳ 随主脚本 | 照 BigCat 家族规矩：测试 → 升 VERSION → GitHub Release → 部署 → 外网验证 |
+| 发布流水线 `bigcata_release.py` | ✅ 已就绪 | 在维护机 `~/workspace/tools/`（与家族其他发布工具同处）；照家族规矩：测试 → 升 VERSION → GitHub Release → 外网验证 |
 
 ## 生成器功能（v0.1.0）
 
@@ -28,7 +28,7 @@
 
 页面顶部 JS 常量 `SCRIPT_URL` 一处配置，当前指向：
 `https://raw.githubusercontent.com/zhanghaobo1987/BigCat-A/main/bigcata.sh`
-（GitHub 仓库 `zhanghaobo1987/BigCat-A` 建好、主脚本发布后即生效。）
+（仓库 `zhanghaobo1987/BigCat-A` 已建为公开仓库；主脚本 `bigcata.sh` 发布后该地址即生效。）
 
 ## 本地预览
 
@@ -37,4 +37,4 @@ cd ~/workspace/bigcat-a && python3 -m http.server 8898 --bind 127.0.0.1
 # 浏览器打开 http://127.0.0.1:8898/
 ```
 
-版本源：`VERSION` 文件（当前 0.1.0）。
+版本源：`VERSION` 文件（当前 0.1.1）。
