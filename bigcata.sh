@@ -3,7 +3,7 @@
 # 用法：vlpt=443 hypt=8443 ... bash bigcata.sh [list|del|res|rep|upx|ups|upa]
 # 变量与 argosbx 兼容：变量“出现即启用”，值为空表示随机端口。
 export LANG=en_US.UTF-8
-VER="0.3.0"
+VER="0.3.1"
 DIR="$HOME/bigcata"; BIN="$DIR/bin"; CONF="$DIR/conf"; SUBD="$DIR/sub"
 PLAN="$DIR/plan.env"
 URL_RAW="https://raw.githubusercontent.com/zhanghaobo1987/BigCat-A/main/bigcata.sh"
@@ -29,6 +29,21 @@ resolve_port(){ # $1=var名 $2=旧值：显式值 > 旧值 > 随机
 dl(){ # $1=url $2=out
   if have curl; then curl -Ls --retry 3 -o "$2" "$1"; elif have wget; then wget -q --tries=3 -O "$2" "$1"; else err "缺少 curl/wget"; exit 1; fi; }
 gh_latest_tag(){ curl -Ls "https://api.github.com/repos/$1/releases/latest" 2>/dev/null | grep -m1 '"tag_name"' | sed -E 's/.*"v?([^"]+)".*/\1/'; }
+extract_zip(){ # $1=zip $2=目标目录：unzip -> python3 -> busybox -> 装 unzip 再试
+  mkdir -p "$2"
+  if have unzip; then unzip -o -q "$1" -d "$2" && return 0; fi
+  if have python3; then python3 -c "import zipfile,sys; zipfile.ZipFile(sys.argv[1]).extractall(sys.argv[2])" "$1" "$2" && return 0; fi
+  if have busybox; then busybox unzip -o "$1" -d "$2" >/dev/null 2>&1 && return 0; fi
+  if have apt-get; then sudo apt-get update -y >/dev/null 2>&1; sudo apt-get install -y unzip >/dev/null 2>&1;
+  elif have apk; then sudo apk add --no-cache unzip >/dev/null 2>&1; fi
+  have unzip && unzip -o -q "$1" -d "$2"
+}
+extract_tgz(){ # $1=tgz $2=目标目录：tar -> python3
+  mkdir -p "$2"
+  if have tar; then tar -xzf "$1" -C "$2" && return 0; fi
+  if have python3; then python3 -c "import tarfile,sys; tarfile.open(sys.argv[1]).extractall(sys.argv[2])" "$1" "$2" && return 0; fi
+  return 1
+}
 ensure_python(){
   have python3 && return
   warn "未发现 python3，尝试安装…"
@@ -46,7 +61,7 @@ install_sb(){
   v=$(gh_latest_tag SagerNet/sing-box); [ -z "$v" ] && v="1.13.19"
   url="https://github.com/SagerNet/sing-box/releases/download/v$v/sing-box-$v-linux-$a.tar.gz"
   say "下载 sing-box v$v ($a)…"; dl "$url" /tmp/sb.tgz || return 1
-  tar -xzf /tmp/sb.tgz -C /tmp >/dev/null 2>&1 && cp /tmp/sing-box-$v-linux-$a/sing-box "$BIN/sb" && chmod +x "$BIN/sb" && "$BIN/sb" version | head -1
+  extract_tgz /tmp/sb.tgz /tmp && cp /tmp/sing-box-$v-linux-$a/sing-box "$BIN/sb" && chmod +x "$BIN/sb" && "$BIN/sb" version | head -1
 }
 install_xr(){
   local a=$(arch) v url zip="Xray-linux-64.zip"
@@ -54,7 +69,7 @@ install_xr(){
   v=$(gh_latest_tag XTLS/Xray-core); [ -z "$v" ] && v="26.3.27"
   url="https://github.com/XTLS/Xray-core/releases/download/v$v/$zip"
   say "下载 Xray v$v ($a)…"; dl "$url" /tmp/xr.zip || return 1
-  mkdir -p /tmp/xrun && (cd /tmp/xrun && unzip -o -q /tmp/xr.zip) && cp /tmp/xrun/xray "$BIN/xr" && chmod +x "$BIN/xr" && "$BIN/xr" version | head -1
+  rm -rf /tmp/xrun && extract_zip /tmp/xr.zip /tmp/xrun && cp /tmp/xrun/xray "$BIN/xr" && chmod +x "$BIN/xr" && "$BIN/xr" version | head -1
 }
 install_cf(){
   local a=$(arch)
