@@ -9,7 +9,7 @@
 | 部分 | 状态 | 说明 |
 |---|---|---|
 | `index.html` 网页命令生成器 | ✅ v0.1.0 上线 | 单文件、零依赖、纯本地生成不上传；GitHub Pages：https://zhanghaobo1987.github.io/BigCat-A/ |
-| `bigcata.sh` 主脚本 | ⏳ 下一步 | Sing-box + Xray + Cloudflared-Argo 三内核，按网页生成的环境变量无交互安装 |
+| `bigcata.sh` 主脚本 | ✅ v0.3.0 | Sing-box + Xray + Cloudflared-Argo 三内核，按网页生成的环境变量无交互安装；本机实测 6 协议端到端穿透通过 |
 | 发布流水线 `bigcata_release.py` | ✅ 已就绪 | 在维护机 `~/workspace/tools/`（与家族其他发布工具同处）；照家族规矩：测试 → 升 VERSION → GitHub Release → 外网验证 |
 
 ## 生成器功能（v0.1.0）
@@ -28,7 +28,7 @@
 
 页面顶部 JS 常量 `SCRIPT_URL` 一处配置，当前指向：
 `https://raw.githubusercontent.com/zhanghaobo1987/BigCat-A/main/bigcata.sh`
-（仓库 `zhanghaobo1987/BigCat-A` 已建为公开仓库；主脚本 `bigcata.sh` 发布后该地址即生效。）
+（仓库 `zhanghaobo1987/BigCat-A` 为公开仓库；主脚本 `bigcata.sh` 已发布，该地址已生效。）
 
 ## 本地预览
 
@@ -37,9 +37,25 @@ cd ~/workspace/bigcat-a && python3 -m http.server 8898 --bind 127.0.0.1
 # 浏览器打开 http://127.0.0.1:8898/
 ```
 
-版本源：`VERSION` 文件（当前 0.2.0）。
+版本源：`VERSION` 文件（当前 0.3.0）。
 
 ## 部署点
 
 - GitHub Pages（主）：https://zhanghaobo1987.github.io/BigCat-A/
 - LightLayer 同步：http://207.57.182.4:8905/（/opt/bigcat-a，systemd 服务 bigcat-a，发版时同步更新并外网验证）
+
+## 主脚本用法
+
+```bash
+# 勾选式安装（变量出现即启用，空值=随机端口，与网页生成器一致）
+vlpt=443 hypt=8443 tupt="" sspt="" sub=y bash <(curl -Ls https://raw.githubusercontent.com/zhanghaobo1987/BigCat-A/main/bigcata.sh)
+
+bigcata list   # 显示节点与订阅
+bigcata rep    # 带新变量重置/更新（密钥与端口默认保留）
+bigcata res    # 重启
+bigcata upx    # 升级 Xray（ups=sing-box，upa=cloudflared）
+bigcata del    # 卸载
+```
+
+实测（v0.3.0，本机）：vlpt/hypt/tupt/sspt/vmpt/sopt 六协议客户端端到端穿透 HTTP 200；其余协议（xhpt/vxpt/vwpt/xupt/xcpt/anpt/nvpt/arpt）配置经内核官方校验通过。
+已知简化：WARP 只区分内核粒度（不细分 v4/v6 组合）；alns 域名证书未接入（nvpt 等先用自签证书，客户端需允许不安全证书）。
