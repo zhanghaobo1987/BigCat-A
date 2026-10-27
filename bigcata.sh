@@ -3,7 +3,7 @@
 # 用法：vlpt=443 hypt=8443 ... bash bigcata.sh [list|del|res|rep|upx|ups|upa]
 # 变量与 argosbx 兼容：变量“出现即启用”，值为空表示随机端口。
 export LANG=en_US.UTF-8
-VER="0.3.2"
+VER="0.4.0"
 DIR="$HOME/bigcata"; BIN="$DIR/bin"; CONF="$DIR/conf"; SUBD="$DIR/sub"
 PLAN="$DIR/plan.env"
 URL_RAW="https://raw.githubusercontent.com/zhanghaobo1987/BigCat-A/main/bigcata.sh"
@@ -61,7 +61,7 @@ install_sb(){
   v=$(gh_latest_tag SagerNet/sing-box); [ -z "$v" ] && v="1.13.19"
   url="https://github.com/SagerNet/sing-box/releases/download/v$v/sing-box-$v-linux-$a.tar.gz"
   say "下载 sing-box v$v ($a)…"; dl "$url" /tmp/sb.tgz || return 1
-  extract_tgz /tmp/sb.tgz /tmp && cp /tmp/sing-box-$v-linux-$a/sing-box "$BIN/sb" && chmod +x "$BIN/sb" && "$BIN/sb" version | head -1
+  extract_tgz /tmp/sb.tgz /tmp && cp /tmp/sing-box-$v-linux-$a/sing-box "$BIN/sb.new" && chmod +x "$BIN/sb.new" && mv -f "$BIN/sb.new" "$BIN/sb" && "$BIN/sb" version | head -1
 }
 install_xr(){
   local a=$(arch) v url zip="Xray-linux-64.zip"
@@ -69,12 +69,12 @@ install_xr(){
   v=$(gh_latest_tag XTLS/Xray-core); [ -z "$v" ] && v="26.3.27"
   url="https://github.com/XTLS/Xray-core/releases/download/v$v/$zip"
   say "下载 Xray v$v ($a)…"; dl "$url" /tmp/xr.zip || return 1
-  rm -rf /tmp/xrun && extract_zip /tmp/xr.zip /tmp/xrun && cp /tmp/xrun/xray "$BIN/xr" && chmod +x "$BIN/xr" && "$BIN/xr" version | head -1
+  rm -rf /tmp/xrun && extract_zip /tmp/xr.zip /tmp/xrun && cp /tmp/xrun/xray "$BIN/xr.new" && chmod +x "$BIN/xr.new" && mv -f "$BIN/xr.new" "$BIN/xr" && "$BIN/xr" version | head -1
 }
 install_cf(){
   local a=$(arch)
   say "下载 cloudflared ($a)…"
-  dl "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-$a" "$BIN/cf" && chmod +x "$BIN/cf" && "$BIN/cf" --version
+  dl "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-$a" "$BIN/cf.new" && chmod +x "$BIN/cf.new" && mv -f "$BIN/cf.new" "$BIN/cf" && "$BIN/cf" --version
 }
 
 # ---------- 服务管理 ----------
@@ -97,7 +97,15 @@ EOF
 }
 svc_start(){
   if [ "$HAS_SYSTEMD" = 1 ]; then sudo systemctl restart bigcata-$1;
-  else nohup $2 >"$DIR/$1.log" 2>&1 & fi
+  else
+    case "$1" in
+      sb|xr) pkill -f "$BIN/$1 run" 2>/dev/null;;
+      argo) pkill -f "$BIN/cf tunnel" 2>/dev/null;;
+      sub) pkill -f "http.server.*$SUBD" 2>/dev/null;;
+    esac
+    sleep 1
+    nohup $2 >"$DIR/$1.log" 2>&1 &
+  fi
 }
 svc_stop(){
   if [ "$HAS_SYSTEMD" = 1 ]; then sudo systemctl stop bigcata-$1 2>/dev/null; sudo systemctl disable -q bigcata-$1 2>/dev/null; sudo rm -f /etc/systemd/system/bigcata-$1.service; sudo systemctl daemon-reload;
@@ -182,9 +190,16 @@ for p in tupt anpt nvpt arpt sspt hypt; do [ -n "${!p+x}" ] && NEED_SB=1; done
 for p in vlpt xhpt vxpt vwpt xupt xcpt vmpt sopt; do [ -n "${!p+x}" ] && NEED_XR=1; done
 [ "${argo:-}" != "" ] && NEED_CF=1 || NEED_CF=0
 
-[ "$NEED_SB" = 1 ] && { [ -x "$BIN/sb" ] || install_sb || { err "sing-box 下载失败"; exit 1; }; }
-[ "$NEED_XR" = 1 ] && { [ -x "$BIN/xr" ] || install_xr || { err "Xray 下载失败"; exit 1; }; }
-[ "$NEED_CF" = 1 ] && { [ -x "$BIN/cf" ] || install_cf || { err "cloudflared 下载失败"; exit 1; }; }
+# 每次安装都拉官方最新内核；下载失败才沿用已装版本兜底（无已装版本则报错退出）
+fetch_kernel(){ # $1=显示名 $2=二进制名 $3=安装函数
+  if [ -x "$BIN/$2" ]; then say "更新 $1 到官方最新版（当前：$("$BIN/$2" version 2>/dev/null | head -1)）…"; fi
+  if $3; then return 0; fi
+  if [ -x "$BIN/$2" ]; then warn "$1 最新版下载失败，沿用现有版本继续安装"; return 0; fi
+  err "$1 下载失败且无可用旧版本"; return 1
+}
+[ "$NEED_SB" = 1 ] && { fetch_kernel sing-box sb install_sb || exit 1; }
+[ "$NEED_XR" = 1 ] && { fetch_kernel Xray xr install_xr || exit 1; }
+[ "$NEED_CF" = 1 ] && { fetch_kernel cloudflared cf install_cf || exit 1; }
 
 # ---------- 密钥材料（旧值优先保留） ----------
 UUID_V="${uuid:-${OLD[uuid]:-}}"; [ -z "$UUID_V" ] && UUID_V=$(cat /proc/sys/kernel/random/uuid)
