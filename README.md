@@ -37,4 +37,9 @@ cd ~/workspace/bigcat-a && python3 -m http.server 8898 --bind 127.0.0.1
 # 浏览器打开 http://127.0.0.1:8898/
 ```
 
-版本源：`VERSION` 文件（当前 0.1.1）。
+版本源：`VERSION` 文件（当前 0.1.2）。
+
+## 部署点
+
+- GitHub Pages（主）：https://zhanghaobo1987.github.io/BigCat-A/
+- LightLayer 同步：http://207.57.182.4:8905/（/opt/bigcat-a，systemd 服务 bigcat-a，发版时同步更新并外网验证）
