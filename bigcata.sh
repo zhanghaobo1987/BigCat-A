@@ -3,7 +3,7 @@
 # 用法：vlpt=443 hypt=8443 ... bash bigcata.sh [list|del|res|rep|upx|ups|upa]
 # 变量与 argosbx 兼容：变量“出现即启用”，值为空表示随机端口。
 export LANG=en_US.UTF-8
-VER="0.4.0"
+VER="0.4.1"
 DIR="$HOME/bigcata"; BIN="$DIR/bin"; CONF="$DIR/conf"; SUBD="$DIR/sub"
 PLAN="$DIR/plan.env"
 URL_RAW="https://raw.githubusercontent.com/zhanghaobo1987/BigCat-A/main/bigcata.sh"
@@ -205,7 +205,8 @@ fetch_kernel(){ # $1=显示名 $2=二进制名 $3=安装函数
 UUID_V="${uuid:-${OLD[uuid]:-}}"; [ -z "$UUID_V" ] && UUID_V=$(cat /proc/sys/kernel/random/uuid)
 REYM_V="${reym:-apple.com}"
 TLS_SNI="www.bing.com"
-SHORT_ID="${OLD[short_id]:-}"; [ -z "$SHORT_ID" ] && SHORT_ID=$(openssl rand -hex 8)
+SHORT_ID="${OLD[short_id]:-}"; [ -z "$SHORT_ID" ] && SHORT_ID=$(openssl rand -hex 4)
+[ ${#SHORT_ID} -ne 8 ] && SHORT_ID=$(openssl rand -hex 4)
 SS_PASS="${OLD[ss_pass]:-}"; [ -z "$SS_PASS" ] && SS_PASS=$(openssl rand -base64 16 | tr -d '\n')
 SOCK_USER="bigcat"; SOCK_PASS="${OLD[sock_pass]:-}"; [ -z "$SOCK_PASS" ] && SOCK_PASS=$(openssl rand -hex 9)
 
@@ -317,11 +318,11 @@ def links_for(plan, host=None, argo=False):
             if cf:
                 out.append(f"vless://{u}@{cf[0]}:{port(plan,'vwpt')}?encryption={quote(P(plan,'enc_enc'), safe='')}&security=none&type=ws&host={P(plan,'cdnym') or ip}&path=%2Fbigcata-vw#{quote(nm('vwpt', 'CDN'))}")
     if has(plan, 'xupt'):
-        out.append(f"vless://{u}@{host}:{port(plan,'xupt')}?encryption=none&security=tls&sni={P(plan,'tls_sni')}&alpn=h2&allowInsecure=1&type=xhttp&mode=packet-up&path=%2F#{quote(nm('xupt'))}")
+        out.append(f"vless://{u}@{host}:{port(plan,'xupt')}?encryption=none&security=tls&sni={P(plan,'tls_sni')}&alpn=h2&allowInsecure=1&type=xhttp&mode=auto&path=%2F#{quote(nm('xupt'))}")
     if has(plan, 'xcpt'):
         out.append(f"vless://{u}@{host}:{port(plan,'xcpt')}?encryption=none&security=tls&sni={P(plan,'tls_sni')}&alpn=h2&allowInsecure=1&type=xhttp&mode=auto&path=%2F#{quote(nm('xcpt'))}")
     if has(plan, 'tupt'):
-        out.append(f"tuic://{u}:{u}@{host}:{port(plan,'tupt')}?congestion_control=bbr&udp_relay_mode=native&alpn=h3&allow_insecure=1#{quote(nm('tupt'))}")
+        out.append(f"tuic://{u}:{u}@{host}:{port(plan,'tupt')}?congestion_control=bbr&udp_relay_mode=native&alpn=h3&sni={P(plan,'tls_sni')}&allow_insecure=1#{quote(nm('tupt'))}")
     if has(plan, 'anpt'):
         out.append(f"anytls://{u}@{host}:{port(plan,'anpt')}?insecure=1&sni={P(plan,'tls_sni')}#{quote(nm('anpt'))}")
     if has(plan, 'nvpt'):
