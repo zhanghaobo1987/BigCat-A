@@ -14,7 +14,21 @@
 body.light{--bg:#f2f6f3;--card:#ffffff;--card2:#f4f9f5;--text:#1d2a21;--muted:#5f7466;--line:#cfded2;--input:#fbfdfb}
 *{box-sizing:border-box}
 body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text)}
-.wrap{max-width:980px;margin:0 auto;padding:18px 14px 60px}
+.wrap{max-width:1720px;margin:0 auto;padding:18px 22px 60px}
+.layout{display:grid;grid-template-columns:repeat(12,1fr);gap:14px;margin-top:14px}
+.layout .card{margin-top:0}
+.c-preset{grid-column:span 12}.c-proto{grid-column:span 8}.c-global{grid-column:span 4}
+.c-sub{grid-column:span 6}.c-argo{grid-column:span 6}.c-gen{grid-column:span 12}
+.proto-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:2px 16px}
+@media(min-width:1560px){.proto-grid{grid-template-columns:repeat(3,1fr)}}
+.c-global .row{flex-direction:column;align-items:stretch;gap:6px}
+.c-global .row .lab{padding-top:0}
+.c-global .row input[type=text],.c-global .row select{width:100%}
+.c-global .grid2{grid-template-columns:1fr}
+.c-global .row button{align-self:flex-start}
+.gen-grid{display:grid;grid-template-columns:330px 1fr;gap:6px 22px;align-items:start}
+@media(max-width:1150px){.c-proto,.c-global,.c-sub,.c-argo{grid-column:span 12}.gen-grid{grid-template-columns:1fr}}
+@media(max-width:640px){.proto-grid{grid-template-columns:1fr}.wrap{padding:14px 10px 44px}}
 header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 4px 6px}
 .logo{font-size:30px}
 .brand{font-size:26px;font-weight:800;letter-spacing:.2px}
@@ -26,12 +40,12 @@ header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 4px 
 .card h3{font-size:14px;margin:16px 0 6px;color:var(--green)}
 .card h3:first-of-type{margin-top:8px}
 .hint{color:var(--muted);font-size:12.5px;margin:2px 0 8px}
-.proto{display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:8px;flex-wrap:wrap}
+.proto{display:flex;flex-direction:column;align-items:stretch;gap:6px;padding:7px 8px;border-radius:8px}
 .proto:hover{background:var(--card2)}
-.proto label{display:flex;align-items:center;gap:8px;cursor:pointer;flex:1;min-width:230px;font-size:14px}
+.proto label{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px}
 .proto input[type=checkbox]{width:17px;height:17px;accent-color:var(--green)}
 .proto .key{color:var(--muted);font-size:12px;font-family:ui-monospace,Menlo,monospace}
-.proto input[type=text]{width:250px;max-width:100%}
+.proto input[type=text]{width:100%}
 input[type=text],select,textarea{background:var(--input);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13.5px}
 input[type=text]:disabled,select:disabled{opacity:.45}
 input[type=text]:focus,select:focus,textarea:focus{outline:2px solid var(--green);outline-offset:0;border-color:var(--green)}
@@ -72,12 +86,13 @@ code{font-family:ui-monospace,Menlo,monospace;background:var(--card2);padding:1p
   <header>
     <div>
       <span class="logo">🐈</span><span class="brand">BigCat</span><span class="badge">A</span>
-      <div class="sub">一键代理节点搭建 · SSH 命令生成器 <span id="ver">v0.1.2</span> —— 点几下选好协议，复制命令到服务器回车一次搞定</div>
+      <div class="sub">一键代理节点搭建 · SSH 命令生成器 <span id="ver">v0.2.0</span> —— 点几下选好协议，复制命令到服务器回车一次搞定</div>
     </div>
     <label class="theme"><input type="checkbox" id="themeSwitch"> 浅色模式</label>
   </header>
 
-  <div class="card">
+  <div class="layout">
+  <div class="card c-preset">
     <h2>快捷预设</h2>
     <div class="hint">先套一个预设，再按需微调端口和选项，命令会自动重新生成。</div>
     <div class="presets">
@@ -90,18 +105,18 @@ code{font-family:ui-monospace,Menlo,monospace;background:var(--card2);padding:1p
     </div>
   </div>
 
-  <div class="card">
+  <div class="card c-proto">
     <h2>必选：内核协议与端口</h2>
     <div class="hint">勾选协议后填写端口，留空则由脚本随机分配端口。至少选一个协议。<span class="count" id="protoCount"></span></div>
     <h3>Xray 内核</h3>
-    <div id="grp-xray"></div>
+    <div id="grp-xray" class="proto-grid"></div>
     <h3>Sing-box 内核</h3>
-    <div id="grp-singbox"></div>
+    <div id="grp-singbox" class="proto-grid"></div>
     <h3>自动分配（已选 Xray 协议则走 Xray，否则 Sing-box）</h3>
-    <div id="grp-auto"></div>
+    <div id="grp-auto" class="proto-grid"></div>
   </div>
 
-  <div class="card">
+  <div class="card c-global">
     <h2>全局配置</h2>
     <div class="row"><div class="lab">UUID 密码 <span class="key">uuid</span></div>
       <input type="text" id="uuid" placeholder="留空则随机生成 UUID 密码"><button id="genUuid" type="button">生成 UUID</button></div>
@@ -147,7 +162,7 @@ code{font-family:ui-monospace,Menlo,monospace;background:var(--card2);padding:1p
       <input type="text" id="name" placeholder="留空则默认用协议名前缀，如 BigCatA"></div>
   </div>
 
-  <div class="card">
+  <div class="card c-sub">
     <h2>订阅链接（Clash / Mihomo、Sing-box、聚合单节点）</h2>
     <div class="row"><div class="lab">启用订阅链接 <span class="key">sub</span></div>
       <select id="sub"><option value="">关闭（仅显示单节点分享链接）</option><option value="y">开启</option></select></div>
@@ -159,7 +174,7 @@ code{font-family:ui-monospace,Menlo,monospace;background:var(--card2);padding:1p
     </div>
   </div>
 
-  <div class="card">
+  <div class="card c-argo">
     <h2>Argo 临时 / 固定隧道 CDN</h2>
     <div class="row"><div class="lab">启用 Argo 隧道 <span class="key">argo</span></div>
       <select id="argoSelect">
@@ -176,22 +191,28 @@ code{font-family:ui-monospace,Menlo,monospace;background:var(--card2);padding:1p
     <div class="hint">临时隧道域名每次重启会变，适合临时使用；固定隧道需在 Cloudflare Zero Trust 先建好隧道并拿到域名与 Token，地址长期不变。</div>
   </div>
 
-  <div class="card">
+  <div class="card c-gen">
     <h2>生成命令</h2>
+    <div class="gen-grid">
+    <div>
     <ol class="steps">
       <li>在上面选好协议与选项（或套预设）；</li>
       <li>点「复制命令」，粘贴到服务器 SSH 终端，回车一次即可完成搭建；</li>
-      <li>保存好这条命令——以后粘回下面的框里，就能直接改配置重新生成。</li>
+      <li>保存好这条命令——以后粘回右边的框里，就能直接改配置重新生成。</li>
     </ol>
     <div>
       <label class="radio"><input type="radio" name="commandType" value="curl" checked>curl</label>
       <label class="radio"><input type="radio" name="commandType" value="wget">wget</label>
     </div>
+    </div>
+    <div>
     <textarea id="output" spellcheck="false"></textarea>
     <div class="msg" id="msg"></div>
     <div class="actions">
       <button class="btn-confirm" id="copyBtn" type="button">复制命令</button>
       <button id="resetBtn" type="button">重置</button>
+    </div>
+    </div>
     </div>
     <h3>已安装后的快捷命令</h3>
     <div class="hint">点一下即生成对应命令（list 会保留当前 ippz 设置，rep 会带上当前全部变量重新调整并更新）。</div>
@@ -204,6 +225,7 @@ code{font-family:ui-monospace,Menlo,monospace;background:var(--card2);padding:1p
       <button data-cmd="upa" type="button">upa 升级 Argo</button>
       <button data-cmd="del" type="button">del 卸载</button>
     </div>
+  </div>
   </div>
 
   <footer>
