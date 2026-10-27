@@ -3,7 +3,7 @@
 # 用法：vlpt=443 hypt=8443 ... bash bigcata.sh [list|del|res|rep|upx|ups|upa]
 # 变量与 argosbx 兼容：变量“出现即启用”，值为空表示随机端口。
 export LANG=en_US.UTF-8
-VER="0.3.1"
+VER="0.3.2"
 DIR="$HOME/bigcata"; BIN="$DIR/bin"; CONF="$DIR/conf"; SUBD="$DIR/sub"
 PLAN="$DIR/plan.env"
 URL_RAW="https://raw.githubusercontent.com/zhanghaobo1987/BigCat-A/main/bigcata.sh"
@@ -266,10 +266,27 @@ def has(plan, p): return p in P(plan, 'protos').split()
 def port(plan, p): return int(P(plan, 'port_' + p, '0') or 0)
 def prefix(plan): return P(plan, 'name') or 'BigCatA'
 
+LABELS = {
+    'vlpt': 'vl-reality-vision', 'xhpt': 'vl-xhttp-reality-enc', 'vxpt': 'vl-xhttp-enc',
+    'vwpt': 'vl-ws-enc', 'xupt': 'vl-xhttp-tls-udp', 'xcpt': 'vl-xhttp-tls-tcpudp',
+    'tupt': 'tuic', 'anpt': 'anytls', 'nvpt': 'naiveproxy', 'arpt': 'any-reality',
+    'sspt': 'Shadowsocks-2022', 'hypt': 'hy2', 'vmpt': 'vm-ws', 'sopt': 'socks5',
+}
+ARGO_LABELS = {'vwpt': 'vl-ws-tls-argo', 'vmpt': 'vmess-ws-tls-argo'}
+def dname(plan, p, variant=''):
+    # 命名与 argosbx 界面一致：协议显示名-后缀（后缀=自定义 name 或服务器 IP）
+    suffix = P(plan, 'name') or P(plan, 'ip')
+    if variant == 'argo':
+        base = ARGO_LABELS.get(p, LABELS.get(p, p) + '-argo')
+    else:
+        base = LABELS.get(p, p)
+        if variant: base += '-' + variant
+    return f"{base}-{suffix}"
+
 def links_for(plan, host=None, argo=False):
     u = P(plan, 'uuid'); host = host or P(plan, 'host'); ip = P(plan, 'ip')
-    pre = prefix(plan); out = []
-    def nm(p): return f"{pre}-{p}-{ip}"
+    out = []
+    def nm(p, variant=''): return dname(plan, p, 'argo' if argo else variant)
     if has(plan, 'vlpt'):
         out.append(f"vless://{u}@{host}:{port(plan,'vlpt')}?encryption=none&flow=xtls-rprx-vision&security=reality&sni={P(plan,'reym')}&fp=chrome&pbk={P(plan,'xr_pub')}&sid={P(plan,'short_id')}&type=tcp&headerType=none#{quote(nm('vlpt'))}")
     if has(plan, 'xhpt'):
@@ -278,12 +295,12 @@ def links_for(plan, host=None, argo=False):
         out.append(f"vless://{u}@{host}:{port(plan,'vxpt')}?encryption={quote(P(plan,'enc_enc'), safe='')}&security=none&type=xhttp&path=%2Fbigcata-vx#{quote(nm('vxpt'))}")
     if has(plan, 'vwpt'):
         if argo:
-            out.append(f"vless://{u}@{host}:443?encryption={quote(P(plan,'enc_enc'), safe='')}&security=tls&sni={host}&type=ws&host={host}&path=%2Fbigcata-vw#{quote(nm('vwpt-Argo'))}")
+            out.append(f"vless://{u}@{host}:443?encryption={quote(P(plan,'enc_enc'), safe='')}&security=tls&sni={host}&type=ws&host={host}&path=%2Fbigcata-vw#{quote(nm('vwpt'))}")
         else:
             out.append(f"vless://{u}@{host}:{port(plan,'vwpt')}?encryption={quote(P(plan,'enc_enc'), safe='')}&security=none&type=ws&path=%2Fbigcata-vw#{quote(nm('vwpt'))}")
             cf = P(plan, 'cfip').split()
             if cf:
-                out.append(f"vless://{u}@{cf[0]}:{port(plan,'vwpt')}?encryption={quote(P(plan,'enc_enc'), safe='')}&security=none&type=ws&host={P(plan,'cdnym') or ip}&path=%2Fbigcata-vw#{quote(nm('vwpt-CDN'))}")
+                out.append(f"vless://{u}@{cf[0]}:{port(plan,'vwpt')}?encryption={quote(P(plan,'enc_enc'), safe='')}&security=none&type=ws&host={P(plan,'cdnym') or ip}&path=%2Fbigcata-vw#{quote(nm('vwpt', 'CDN'))}")
     if has(plan, 'xupt'):
         out.append(f"vless://{u}@{host}:{port(plan,'xupt')}?encryption=none&security=tls&sni={P(plan,'tls_sni')}&alpn=h2&allowInsecure=1&type=xhttp&mode=packet-up&path=%2F#{quote(nm('xupt'))}")
     if has(plan, 'xcpt'):
@@ -304,13 +321,13 @@ def links_for(plan, host=None, argo=False):
             extra = '&mport=' + quote(P(plan, 'hyjpt').replace(' ', ','), safe='')
         out.append(f"hysteria2://{u}@{host}:{port(plan,'hypt')}?insecure=1&sni={P(plan,'tls_sni')}{extra}#{quote(nm('hypt'))}")
     if has(plan, 'vmpt'):
-        vm = {"v": "2", "ps": nm('vmpt-Argo' if argo else 'vmpt'), "add": host if argo else ip, "port": str(443 if argo else port(plan,'vmpt')),
+        vm = {"v": "2", "ps": nm('vmpt'), "add": host if argo else ip, "port": str(443 if argo else port(plan,'vmpt')),
               "id": u, "aid": "0", "scy": "auto", "net": "ws", "type": "none",
               "host": host if argo else "", "path": "/bigcata-vm", "tls": "tls" if argo else ""}
         out.append("vmess://" + b64(json.dumps(vm, ensure_ascii=False)))
         cf = P(plan, 'cfip').split()
         if cf and not argo:
-            vm2 = dict(vm); vm2['ps'] = nm('vmpt-CDN'); vm2['add'] = cf[0]; vm2['host'] = P(plan, 'cdnym') or ip
+            vm2 = dict(vm); vm2['ps'] = nm('vmpt', 'CDN'); vm2['add'] = cf[0]; vm2['host'] = P(plan, 'cdnym') or ip
             out.append("vmess://" + b64(json.dumps(vm2, ensure_ascii=False)))
     if has(plan, 'sopt'):
         out.append(f"socks://{b64(P(plan,'sock_user') + ':' + P(plan,'sock_pass'))}@{host}:{port(plan,'sopt')}#{quote(nm('sopt'))}")
@@ -420,15 +437,15 @@ def build_configs(plan):
 def clash_yaml(plan, dom=''):
     u = P(plan, 'uuid'); ip = P(plan, 'ip'); pre = prefix(plan); ps = []
     def add(d): ps.append(d)
-    if has(plan, 'vlpt'): add({"name": f"{pre}-vlpt", "type": "vless", "server": ip, "port": port(plan,'vlpt'), "uuid": u, "flow": "xtls-rprx-vision", "network": "tcp", "tls": True, "udp": True, "servername": P(plan,'reym'), "reality-opts": {"public-key": P(plan,'xr_pub'), "short-id": P(plan,'short_id')}, "client-fingerprint": "chrome"})
-    if has(plan, 'arpt'): add({"name": f"{pre}-arpt", "type": "vless", "server": ip, "port": port(plan,'arpt'), "uuid": u, "network": "tcp", "tls": True, "udp": True, "servername": P(plan,'reym'), "reality-opts": {"public-key": P(plan,'sb_pub'), "short-id": P(plan,'short_id')}, "client-fingerprint": "chrome"})
-    if has(plan, 'hypt'): add({"name": f"{pre}-hypt", "type": "hysteria2", "server": ip, "port": port(plan,'hypt'), "password": u, "sni": P(plan,'tls_sni'), "skip-cert-verify": True})
-    if has(plan, 'tupt'): add({"name": f"{pre}-tupt", "type": "tuic", "server": ip, "port": port(plan,'tupt'), "uuid": u, "password": u, "congestion-controller": "bbr", "alpn": ["h3"], "skip-cert-verify": True})
-    if has(plan, 'sspt'): add({"name": f"{pre}-sspt", "type": "ss", "server": ip, "port": port(plan,'sspt'), "cipher": "2022-blake3-aes-128-gcm", "password": P(plan,'ss_pass'), "udp": True})
-    if has(plan, 'vmpt'): add({"name": f"{pre}-vmpt", "type": "vmess", "server": ip, "port": port(plan,'vmpt'), "uuid": u, "alterId": 0, "cipher": "auto", "network": "ws", "ws-opts": {"path": "/bigcata-vm"}, "udp": True})
-    if has(plan, 'vwpt'): add({"name": f"{pre}-vwpt", "type": "vless", "server": ip, "port": port(plan,'vwpt'), "uuid": u, "network": "ws", "ws-opts": {"path": "/bigcata-vw"}, "udp": True})
-    if has(plan, 'anpt'): add({"name": f"{pre}-anpt", "type": "anytls", "server": ip, "port": port(plan,'anpt'), "password": u, "sni": P(plan,'tls_sni'), "skip-cert-verify": True, "udp": True})
-    if has(plan, 'sopt'): add({"name": f"{pre}-sopt", "type": "socks5", "server": ip, "port": port(plan,'sopt'), "username": P(plan,'sock_user'), "password": P(plan,'sock_pass'), "udp": True})
+    if has(plan, 'vlpt'): add({"name": dname(plan, 'vlpt'), "type": "vless", "server": ip, "port": port(plan,'vlpt'), "uuid": u, "flow": "xtls-rprx-vision", "network": "tcp", "tls": True, "udp": True, "servername": P(plan,'reym'), "reality-opts": {"public-key": P(plan,'xr_pub'), "short-id": P(plan,'short_id')}, "client-fingerprint": "chrome"})
+    if has(plan, 'arpt'): add({"name": dname(plan, 'arpt'), "type": "vless", "server": ip, "port": port(plan,'arpt'), "uuid": u, "network": "tcp", "tls": True, "udp": True, "servername": P(plan,'reym'), "reality-opts": {"public-key": P(plan,'sb_pub'), "short-id": P(plan,'short_id')}, "client-fingerprint": "chrome"})
+    if has(plan, 'hypt'): add({"name": dname(plan, 'hypt'), "type": "hysteria2", "server": ip, "port": port(plan,'hypt'), "password": u, "sni": P(plan,'tls_sni'), "skip-cert-verify": True})
+    if has(plan, 'tupt'): add({"name": dname(plan, 'tupt'), "type": "tuic", "server": ip, "port": port(plan,'tupt'), "uuid": u, "password": u, "congestion-controller": "bbr", "alpn": ["h3"], "skip-cert-verify": True})
+    if has(plan, 'sspt'): add({"name": dname(plan, 'sspt'), "type": "ss", "server": ip, "port": port(plan,'sspt'), "cipher": "2022-blake3-aes-128-gcm", "password": P(plan,'ss_pass'), "udp": True})
+    if has(plan, 'vmpt'): add({"name": dname(plan, 'vmpt'), "type": "vmess", "server": ip, "port": port(plan,'vmpt'), "uuid": u, "alterId": 0, "cipher": "auto", "network": "ws", "ws-opts": {"path": "/bigcata-vm"}, "udp": True})
+    if has(plan, 'vwpt'): add({"name": dname(plan, 'vwpt'), "type": "vless", "server": ip, "port": port(plan,'vwpt'), "uuid": u, "network": "ws", "ws-opts": {"path": "/bigcata-vw"}, "udp": True})
+    if has(plan, 'anpt'): add({"name": dname(plan, 'anpt'), "type": "anytls", "server": ip, "port": port(plan,'anpt'), "password": u, "sni": P(plan,'tls_sni'), "skip-cert-verify": True, "udp": True})
+    if has(plan, 'sopt'): add({"name": dname(plan, 'sopt'), "type": "socks5", "server": ip, "port": port(plan,'sopt'), "username": P(plan,'sock_user'), "password": P(plan,'sock_pass'), "udp": True})
     names = [p['name'] for p in ps]
     def yesc(s): return json.dumps(str(s), ensure_ascii=False)
     lines = ["proxies:"]
@@ -442,11 +459,11 @@ def clash_yaml(plan, dom=''):
 
 def sb_client_json(plan):
     u = P(plan, 'uuid'); ip = P(plan, 'ip'); pre = prefix(plan); outs = []
-    if has(plan, 'vlpt'): outs.append({"type": "vless", "tag": f"{pre}-vlpt", "server": ip, "server_port": port(plan,'vlpt'), "uuid": u, "flow": "xtls-rprx-vision", "tls": {"enabled": True, "server_name": P(plan,'reym'), "utls": {"enabled": True, "fingerprint": "chrome"}, "reality": {"enabled": True, "public_key": P(plan,'xr_pub'), "short_id": P(plan,'short_id')}}})
-    if has(plan, 'hypt'): outs.append({"type": "hysteria2", "tag": f"{pre}-hypt", "server": ip, "server_port": port(plan,'hypt'), "password": u, "tls": {"enabled": True, "server_name": P(plan,'tls_sni'), "insecure": True}})
-    if has(plan, 'tupt'): outs.append({"type": "tuic", "tag": f"{pre}-tupt", "server": ip, "server_port": port(plan,'tupt'), "uuid": u, "password": u, "congestion_control": "bbr", "tls": {"enabled": True, "alpn": ["h3"], "insecure": True}})
-    if has(plan, 'sspt'): outs.append({"type": "shadowsocks", "tag": f"{pre}-sspt", "server": ip, "server_port": port(plan,'sspt'), "method": "2022-blake3-aes-128-gcm", "password": P(plan,'ss_pass')})
-    if has(plan, 'anpt'): outs.append({"type": "anytls", "tag": f"{pre}-anpt", "server": ip, "server_port": port(plan,'anpt'), "password": u, "tls": {"enabled": True, "server_name": P(plan,'tls_sni'), "insecure": True}})
+    if has(plan, 'vlpt'): outs.append({"type": "vless", "tag": dname(plan, 'vlpt'), "server": ip, "server_port": port(plan,'vlpt'), "uuid": u, "flow": "xtls-rprx-vision", "tls": {"enabled": True, "server_name": P(plan,'reym'), "utls": {"enabled": True, "fingerprint": "chrome"}, "reality": {"enabled": True, "public_key": P(plan,'xr_pub'), "short_id": P(plan,'short_id')}}})
+    if has(plan, 'hypt'): outs.append({"type": "hysteria2", "tag": dname(plan, 'hypt'), "server": ip, "server_port": port(plan,'hypt'), "password": u, "tls": {"enabled": True, "server_name": P(plan,'tls_sni'), "insecure": True}})
+    if has(plan, 'tupt'): outs.append({"type": "tuic", "tag": dname(plan, 'tupt'), "server": ip, "server_port": port(plan,'tupt'), "uuid": u, "password": u, "congestion_control": "bbr", "tls": {"enabled": True, "alpn": ["h3"], "insecure": True}})
+    if has(plan, 'sspt'): outs.append({"type": "shadowsocks", "tag": dname(plan, 'sspt'), "server": ip, "server_port": port(plan,'sspt'), "method": "2022-blake3-aes-128-gcm", "password": P(plan,'ss_pass')})
+    if has(plan, 'anpt'): outs.append({"type": "anytls", "tag": dname(plan, 'anpt'), "server": ip, "server_port": port(plan,'anpt'), "password": u, "tls": {"enabled": True, "server_name": P(plan,'tls_sni'), "insecure": True}})
     tags = [o['tag'] for o in outs]
     full = {"outbounds": [{"type": "selector", "tag": "proxy", "outbounds": tags + ["direct"], "default": tags[0] if tags else "direct"}] + outs + [{"type": "direct", "tag": "direct"}],
             "route": {"final": "proxy"}, "inbounds": [{"type": "mixed", "listen": "127.0.0.1", "listen_port": 2080}]}
