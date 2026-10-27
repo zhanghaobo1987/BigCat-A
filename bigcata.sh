@@ -3,7 +3,7 @@
 # 用法：vlpt=443 hypt=8443 ... bash bigcata.sh [list|del|res|rep|upx|ups|upa]
 # 变量与 argosbx 兼容：变量“出现即启用”，值为空表示随机端口。
 export LANG=en_US.UTF-8
-VER="0.4.1"
+VER="0.4.2"
 DIR="$HOME/bigcata"; BIN="$DIR/bin"; CONF="$DIR/conf"; SUBD="$DIR/sub"
 PLAN="$DIR/plan.env"
 URL_RAW="https://raw.githubusercontent.com/zhanghaobo1987/BigCat-A/main/bigcata.sh"
@@ -256,6 +256,7 @@ SUBPT_V=""; [ "${sub:-}" = "y" ] && SUBPT_V=$(resolve_port subpt "${OLD[subpt]:-
   echo "enc_dec=$ENC_DEC"; echo "enc_enc=$ENC_ENC"
   echo "ip=$IP_SHOW"; echo "ip4=$IP4"; echo "host=$HOST_SHOW"
   echo "name=${name:-}"; echo "cfip=${cfip:-}"; echo "cdnym=${cdnym:-}"
+  echo "nodehost=${OLD[nodehost]:-$(hostname 2>/dev/null | tr -cd 'A-Za-z0-9._-' | cut -c1-60)}"
   echo "warp=${warp:-}"; echo "ippz=${ippz:-}"; echo "hyjpt=${hyjpt:-}"
   echo "sub=${sub:-}"; echo "subid=${subid:-$UUID_V}"; echo "subpt=$SUBPT_V"
   echo "argo=${argo:-}"; echo "agn=${agn:-}"; echo "agk=${agk:-}"
@@ -290,8 +291,8 @@ LABELS = {
 }
 ARGO_LABELS = {'vwpt': 'vl-ws-tls-argo', 'vmpt': 'vmess-ws-tls-argo'}
 def dname(plan, p, variant=''):
-    # 命名与 argosbx 界面一致：协议显示名-后缀（后缀=自定义 name 或服务器 IP）
-    suffix = P(plan, 'name') or P(plan, 'ip')
+    # 命名与 argosbx 界面一致：协议显示名-后缀（后缀=自定义 name 或服务器主机名）
+    suffix = P(plan, 'name') or P(plan, 'nodehost') or P(plan, 'ip')
     if variant == 'argo':
         base = ARGO_LABELS.get(p, LABELS.get(p, p) + '-argo')
     else:
