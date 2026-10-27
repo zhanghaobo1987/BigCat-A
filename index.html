@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BigCat A 一键SSH命令生成器</title>
+<meta name="description" content="BigCat A：一键代理节点搭建命令生成器，点选协议与端口，生成可直接粘贴到服务器 SSH 的一键命令。">
+<style>
+:root{
+  --green:#2e8b57; --green-d:#237347; --bg:#0f1512; --card:#171f1a; --card2:#1d2821;
+  --text:#e8f0ea; --muted:#9db3a5; --line:#2b3d31; --warn:#e0a458; --bad:#e06c5f;
+  --input:#101713; --radius:10px;
+}
+body.light{--bg:#f2f6f3;--card:#ffffff;--card2:#f4f9f5;--text:#1d2a21;--muted:#5f7466;--line:#cfded2;--input:#fbfdfb}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text)}
+.wrap{max-width:980px;margin:0 auto;padding:18px 14px 60px}
+header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 4px 6px}
+.logo{font-size:30px}
+.brand{font-size:26px;font-weight:800;letter-spacing:.2px}
+.badge{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:30px;padding:0 7px;border:2px solid var(--green);border-radius:8px;color:var(--green);font-weight:800;font-size:19px;margin-left:6px;vertical-align:2px}
+.sub{color:var(--muted);font-size:13px;margin-top:3px}
+.theme{margin-left:auto;font-size:13px;color:var(--muted);cursor:pointer;user-select:none}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-top:14px}
+.card h2{font-size:16px;margin:0 0 4px}
+.card h3{font-size:14px;margin:16px 0 6px;color:var(--green)}
+.card h3:first-of-type{margin-top:8px}
+.hint{color:var(--muted);font-size:12.5px;margin:2px 0 8px}
+.proto{display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:8px;flex-wrap:wrap}
+.proto:hover{background:var(--card2)}
+.proto label{display:flex;align-items:center;gap:8px;cursor:pointer;flex:1;min-width:230px;font-size:14px}
+.proto input[type=checkbox]{width:17px;height:17px;accent-color:var(--green)}
+.proto .key{color:var(--muted);font-size:12px;font-family:ui-monospace,Menlo,monospace}
+.proto input[type=text]{width:250px;max-width:100%}
+input[type=text],select,textarea{background:var(--input);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13.5px}
+input[type=text]:disabled,select:disabled{opacity:.45}
+input[type=text]:focus,select:focus,textarea:focus{outline:2px solid var(--green);outline-offset:0;border-color:var(--green)}
+.row{display:flex;align-items:flex-start;gap:10px;padding:7px 8px;flex-wrap:wrap;border-radius:8px}
+.row:hover{background:var(--card2)}
+.row .lab{flex:1;min-width:230px;font-size:14px;padding-top:7px}
+.row .lab .key{color:var(--muted);font-size:12px;font-family:ui-monospace,Menlo,monospace;margin-left:4px}
+.row input[type=text]{width:340px;max-width:100%}
+.row select{width:340px;max-width:100%}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}
+@media(max-width:760px){.grid2{grid-template-columns:1fr}}
+button{border:1.5px solid var(--green);background:transparent;color:var(--green);border-radius:8px;padding:7px 14px;font-size:13.5px;font-weight:700;cursor:pointer}
+button:hover{background:var(--green);color:#fff}
+.btn-confirm{background:var(--green);color:#fff;border:1.5px solid var(--green)}
+.btn-confirm:hover{background:var(--green-d)}
+.btn-confirm:disabled{opacity:.5;cursor:not-allowed}
+.presets{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.presets button{font-weight:600}
+.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+textarea#output{width:100%;min-height:96px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;line-height:1.55;word-break:break-all}
+.msg{min-height:20px;font-size:13px;margin-top:8px}
+.msg.warn{color:var(--warn)} .msg.bad{color:var(--bad)} .msg.ok{color:var(--green)}
+.shortcut{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.shortcut button{font-weight:600}
+.radio{display:inline-flex;gap:6px;align-items:center;font-size:14px;cursor:pointer;margin-right:14px}
+.radio input{accent-color:var(--green);width:16px;height:16px}
+ol.steps{margin:6px 0;padding-left:20px;font-size:13.5px;line-height:1.9;color:var(--text)}
+footer{color:var(--muted);font-size:12.5px;line-height:1.9;margin-top:18px;padding:0 4px}
+footer a, .card a{color:var(--green)}
+code{font-family:ui-monospace,Menlo,monospace;background:var(--card2);padding:1px 5px;border-radius:5px}
+.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);background:var(--green);color:#fff;padding:10px 18px;border-radius:8px;font-size:14px;opacity:0;pointer-events:none;transition:.25s}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.count{font-size:12.5px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <span class="logo">🐈</span><span class="brand">BigCat</span><span class="badge">A</span>
+      <div class="sub">一键代理节点搭建 · SSH 命令生成器 <span id="ver">v0.1.0</span> —— 点几下选好协议，复制命令到服务器回车一次搞定</div>
+    </div>
+    <label class="theme"><input type="checkbox" id="themeSwitch"> 浅色模式</label>
+  </header>
+
+  <div class="card">
+    <h2>快捷预设</h2>
+    <div class="hint">先套一个预设，再按需微调端口和选项，命令会自动重新生成。</div>
+    <div class="presets">
+      <button data-preset="simple">极简直连（Reality + Hy2）</button>
+      <button data-preset="singbox">Sing-box 全家桶</button>
+      <button data-preset="full">全协议</button>
+      <button data-preset="argo">Argo 免公网 IP</button>
+      <button data-preset="cdn">CDN 优选（WS + VMess）</button>
+      <button data-preset="sub">带订阅链接</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>必选：内核协议与端口</h2>
+    <div class="hint">勾选协议后填写端口，留空则由脚本随机分配端口。至少选一个协议。<span class="count" id="protoCount"></span></div>
+    <h3>Xray 内核</h3>
+    <div id="grp-xray"></div>
+    <h3>Sing-box 内核</h3>
+    <div id="grp-singbox"></div>
+    <h3>自动分配（已选 Xray 协议则走 Xray，否则 Sing-box）</h3>
+    <div id="grp-auto"></div>
+  </div>
+
+  <div class="card">
+    <h2>全局配置</h2>
+    <div class="row"><div class="lab">UUID 密码 <span class="key">uuid</span></div>
+      <input type="text" id="uuid" placeholder="留空则随机生成 UUID 密码"><button id="genUuid" type="button">生成 UUID</button></div>
+    <div class="row"><div class="lab">Reality 域名 <span class="key">reym</span></div>
+      <input type="text" id="reym" placeholder="选 Reality 相关协议后可用，留空默认 apple.com" disabled></div>
+    <div class="row"><div class="lab">CDN 优选 IP / 域名 <span class="key">cfip</span></div>
+      <input type="text" id="cfip" placeholder="支持 2 个优选值（空格间隔），留空用默认优选域名" disabled></div>
+    <div class="row"><div class="lab">域名 IP 证书 TLS <span class="key">alns</span></div>
+      <select id="alns">
+        <option value="">关闭（HY2 / TUIC / AnyTLS / XHTTP-TLS 用自签证书）</option>
+        <option value="y">开启（上述协议改用域名 IP 证书；Naiveproxy 需开启后可选）</option>
+      </select></div>
+    <div class="row"><div class="lab">Hysteria2 端口跳跃 <span class="key">hyjpt</span></div>
+      <input type="text" id="hyjpt" placeholder="选 Hy2 后可用，例：123:456 789（范围与单端口可混用）" disabled></div>
+    <div class="row"><div class="lab">CF 解析 IP 的域名 <span class="key">cdnym</span></div>
+      <input type="text" id="cdnym" placeholder="VMess-WS / VLESS-WS / XHTTP 走 80 回源 CDN 时可用" disabled></div>
+    <div class="row"><div class="lab">WARP 出站 <span class="key">warp</span></div>
+      <select id="warp">
+        <option value="">默认：服务器本地 IP 出站</option>
+        <option value="1">1 · Sing-box WARP IPv4+IPv6，Xray 本地</option>
+        <option value="2">2 · Sing-box WARP IPv4，Xray 本地</option>
+        <option value="3">3 · Sing-box WARP IPv6，Xray 本地</option>
+        <option value="4">4 · Sing-box 本地，Xray WARP IPv4+IPv6</option>
+        <option value="5">5 · Sing-box 本地，Xray WARP IPv4</option>
+        <option value="6">6 · Sing-box 本地，Xray WARP IPv6</option>
+        <option value="7">7 · 双内核同时 WARP IPv4</option>
+        <option value="8">8 · Sing-box WARP IPv4，Xray WARP IPv6</option>
+        <option value="9">9 · Sing-box WARP IPv6，Xray WARP IPv4</option>
+        <option value="10">10 · 双内核同时 WARP IPv6</option>
+        <option value="11">11 · Sing-box WARP IPv4+IPv6，Xray WARP IPv4</option>
+        <option value="12">12 · Sing-box WARP IPv4+IPv6，Xray WARP IPv6</option>
+        <option value="13">13 · Sing-box WARP IPv4，Xray WARP IPv4+IPv6</option>
+        <option value="14">14 · Sing-box WARP IPv6，Xray WARP IPv4+IPv6</option>
+        <option value="15">15 · 双内核同时 WARP IPv4+IPv6</option>
+      </select></div>
+    <div class="grid2">
+      <div class="row"><div class="lab">配置导出 IP 版本 <span class="key">ippz</span></div>
+        <select id="ippz"><option value="">自动</option><option value="4">导出 IPv4</option><option value="6">导出 IPv6</option></select></div>
+      <div class="row"><div class="lab">开放所有端口 <span class="key">oap</span></div>
+        <select id="oap"><option value="">关闭</option><option value="y">开启（执行一次即可）</option></select></div>
+    </div>
+    <div class="row"><div class="lab">节点名称前缀 <span class="key">name</span></div>
+      <input type="text" id="name" placeholder="留空则默认用协议名前缀，如 BigCatA"></div>
+  </div>
+
+  <div class="card">
+    <h2>订阅链接（Clash / Mihomo、Sing-box、聚合单节点）</h2>
+    <div class="row"><div class="lab">启用订阅链接 <span class="key">sub</span></div>
+      <select id="sub"><option value="">关闭（仅显示单节点分享链接）</option><option value="y">开启</option></select></div>
+    <div class="grid2">
+      <div class="row"><div class="lab">订阅链接密码 <span class="key">subid</span></div>
+        <input type="text" id="subid" placeholder="留空则默认用 UUID 作路径密码" disabled></div>
+      <div class="row"><div class="lab">订阅链接端口 <span class="key">subpt</span></div>
+        <input type="text" id="subpt" placeholder="留空则随机端口" disabled></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Argo 临时 / 固定隧道 CDN</h2>
+    <div class="row"><div class="lab">启用 Argo 隧道 <span class="key">argo</span></div>
+      <select id="argoSelect">
+        <option value="">关闭</option>
+        <option value="vwpt">启用，主协议 Vless-ws-enc</option>
+        <option value="vmpt">启用，主协议 Vmess-ws</option>
+      </select></div>
+    <div class="grid2">
+      <div class="row"><div class="lab">固定隧道 CF 域名 <span class="key">agn</span></div>
+        <input type="text" id="agn" placeholder="Zero Trust 里已设子域的 CF 域名，留空为临时隧道" disabled></div>
+      <div class="row"><div class="lab">固定隧道 Token <span class="key">agk</span></div>
+        <input type="text" id="agk" placeholder="ey 开头的 Token，留空为临时隧道" disabled></div>
+    </div>
+    <div class="hint">临时隧道域名每次重启会变，适合临时使用；固定隧道需在 Cloudflare Zero Trust 先建好隧道并拿到域名与 Token，地址长期不变。</div>
+  </div>
+
+  <div class="card">
+    <h2>生成命令</h2>
+    <ol class="steps">
+      <li>在上面选好协议与选项（或套预设）；</li>
+      <li>点「复制命令」，粘贴到服务器 SSH 终端，回车一次即可完成搭建；</li>
+      <li>保存好这条命令——以后粘回下面的框里，就能直接改配置重新生成。</li>
+    </ol>
+    <div>
+      <label class="radio"><input type="radio" name="commandType" value="curl" checked>curl</label>
+      <label class="radio"><input type="radio" name="commandType" value="wget">wget</label>
+    </div>
+    <textarea id="output" spellcheck="false"></textarea>
+    <div class="msg" id="msg"></div>
+    <div class="actions">
+      <button class="btn-confirm" id="copyBtn" type="button">复制命令</button>
+      <button id="resetBtn" type="button">重置</button>
+    </div>
+    <h3>已安装后的快捷命令</h3>
+    <div class="hint">点一下即生成对应命令（list 会保留当前 ippz 设置，rep 会带上当前全部变量重新调整并更新）。</div>
+    <div class="shortcut">
+      <button data-cmd="list" type="button">list 节点显示</button>
+      <button data-cmd="rep" type="button">rep 调整并更新</button>
+      <button data-cmd="res" type="button">res 重启</button>
+      <button data-cmd="upx" type="button">upx 升级 Xray</button>
+      <button data-cmd="ups" type="button">ups 升级 Sing-box</button>
+      <button data-cmd="upa" type="button">upa 升级 Argo</button>
+      <button data-cmd="del" type="button">del 卸载</button>
+    </div>
+  </div>
+
+  <footer>
+    客户端推荐：自家 <b>BigCat V</b>（全协议）、v2rayN（Windows）、NekoBox / v2rayNG（Android）、Shadowrocket / sing-box（iOS）。个别协议仅部分客户端支持。<br>
+    本页只在浏览器本地生成命令，不上传任何输入。命令指向 BigCat A 主脚本（见仓库 README 的脚本地址设置）；协议变量与 argosbx 保持兼容，旧 agsbx 命令可直接粘回本页改配。
+  </footer>
+</div>
+<div class="toast" id="toast">已复制到剪贴板</div>
+
+<script>
+(function(){
+  // ===== 可配置：BigCat A 主脚本地址（仓库发布后改这一处即可） =====
+  var SCRIPT_URL = 'https://raw.githubusercontent.com/zhanghaobo1987/BigCat-A/main/bigcata.sh';
+
+  var PROTOS = [
+    // key, 名称, 分组, 端口占位提示
+    ['vlpt','Vless-tcp-reality-vision','xray','留空则随机端口'],
+    ['xhpt','Vless-xhttp-reality-enc','xray','留空则随机端口'],
+    ['vxpt','Vless-xhttp-enc','xray','留空则随机端口'],
+    ['vwpt','Vless-ws-enc','xray','留空则随机端口（Argo 固定隧道的 URL 端口与此相同）'],
+    ['xupt','Vless-xhttp-tls-UDP','xray','留空则随机端口'],
+    ['xcpt','Vless-xhttp-tls-TCP/UDP','xray','留空则随机端口（443 系端口 + 域名证书，UDP 可走 CDN）'],
+    ['tupt','Tuic','singbox','留空则随机端口'],
+    ['anpt','AnyTLS','singbox','留空则随机端口'],
+    ['nvpt','Naiveproxy','singbox','启用域名 IP 证书 TLS 后可选，留空则随机端口'],
+    ['arpt','Any-reality','singbox','留空则随机端口'],
+    ['sspt','Shadowsocks-2022','singbox','留空则随机端口'],
+    ['hypt','Hysteria2','auto','留空则随机端口'],
+    ['vmpt','Vmess-ws','auto','留空则随机端口（Argo 固定隧道的 URL 端口与此相同）'],
+    ['sopt','Socks5','auto','留空则随机端口']
+  ];
+  var OPT_IDS = ['uuid','reym','cfip','alns','hyjpt','cdnym','warp','ippz','oap','name','sub','subid','subpt','agn','agk'];
+
+  function el(id){ return document.getElementById(id); }
+  function baseCmd(){
+    var t = document.querySelector('input[name="commandType"]:checked').value;
+    return t === 'wget' ? 'bash <(wget -qO- ' + SCRIPT_URL + ')' : 'bash <(curl -Ls ' + SCRIPT_URL + ')';
+  }
+  // 构建协议行
+  PROTOS.forEach(function(p){
+    var div = document.createElement('div'); div.className = 'proto';
+    div.innerHTML = '<label><input type="checkbox" data-proto="' + p[0] + '"> ' + p[1] +
+      ' <span class="key">' + p[0] + '</span></label>' +
+      '<input type="text" inputmode="numeric" data-port="' + p[0] + '" placeholder="' + p[3] + '" disabled>';
+    el('grp-' + p[2]).appendChild(div);
+  });
+  function ck(k){ return document.querySelector('[data-proto="' + k + '"]'); }
+  function pt(k){ return document.querySelector('[data-port="' + k + '"]'); }
+
+  // 主题
+  var themeSwitch = el('themeSwitch');
+  if (localStorage.getItem('bigcata-theme') === 'light'){ document.body.classList.add('light'); themeSwitch.checked = true; }
+  themeSwitch.addEventListener('change', function(){
+    document.body.classList.toggle('light', themeSwitch.checked);
+    localStorage.setItem('bigcata-theme', themeSwitch.checked ? 'light' : 'dark');
+  });
+
+  function toast(text){
+    var t = el('toast'); t.textContent = text; t.classList.add('show');
+    setTimeout(function(){ t.classList.remove('show'); }, 1800);
+  }
+  function shellQuote(v){
+    if (/^[A-Za-z0-9._\-\/:]+$/.test(v)) return v;
+    return '"' + v.replace(/(["$`\\])/g, '\\$1') + '"';
+  }
+  function collect(){
+    var m = {}, order = [];
+    PROTOS.forEach(function(p){
+      if (ck(p[0]).checked){ m[p[0]] = pt(p[0]).value.trim(); order.push(p[0]); }
+    });
+    OPT_IDS.forEach(function(id){
+      var e = el(id); if (!e) return;
+      var v = (e.value || '').trim();
+      if (v) m[id] = v;
+    });
+    var argo = el('argoSelect').value;
+    if (argo) m['argo'] = argo;
+    return {m:m, order:order};
+  }
+  function toVars(m){
+    var keys = [];
+    PROTOS.forEach(function(p){ if (p[0] in m) keys.push(p[0]); });
+    OPT_IDS.concat(['argo']).forEach(function(id){ if (id in m && keys.indexOf(id) < 0) keys.push(id); });
+    return keys.map(function(k){ return k + '=' + shellQuote(m[k]); }).join(' ');
+  }
+  var action = ''; // ''=安装；list/rep/res/upx/ups/upa/del
+  function validate(m){
+    var msg = el('msg'); msg.className = 'msg'; msg.textContent = '';
+    var ports = {}, dup = [];
+    PROTOS.forEach(function(p){
+      if (!ck(p[0]).checked) return;
+      var v = pt(p[0]).value.trim();
+      if (v && !/^\d+$/.test(v)) { msg.className='msg bad'; msg.textContent = '端口必须是数字：' + p[0] + '=' + v; }
+      if (v && (+v < 1 || +v > 65535)) { msg.className='msg bad'; msg.textContent = '端口超出 1-65535：' + p[0] + '=' + v; }
+      if (v){ if (ports[v]) dup.push(v); ports[v] = p[0]; }
+    });
+    if (!msg.textContent && dup.length){ msg.className='msg warn'; msg.textContent = '注意：端口 ' + dup.join(', ') + ' 被多个协议共用，TCP/UDP 不同协议可以共用，同类协议请改开。'; }
+    var n = PROTOS.filter(function(p){ return ck(p[0]).checked; }).length;
+    el('protoCount').textContent = n ? '（已选 ' + n + ' 个）' : '';
+    if (!msg.textContent && action === '' && n === 0){ msg.className='msg warn'; msg.textContent = '请至少勾选一个协议再复制命令。'; }
+    return n;
+  }
+  function render(){
+    if (suppress) return;
+    var c = collect(); validate(c.m);
+    var vars = toVars(c.m);
+    var out = (vars ? vars + ' ' : '') + baseCmd() + (action ? ' ' + action : '');
+    el('output').value = out;
+  }
+  function dynamic(){
+    PROTOS.forEach(function(p){ pt(p[0]).disabled = !ck(p[0]).checked; if (!ck(p[0]).checked) pt(p[0]).value=''; });
+    var reality = ck('vlpt').checked || ck('xhpt').checked || ck('arpt').checked;
+    el('reym').disabled = !reality; if (!reality) el('reym').value = '';
+    var cdn = ck('vmpt').checked || ck('vxpt').checked || ck('vwpt').checked;
+    el('cdnym').disabled = !cdn; if (!cdn) el('cdnym').value = '';
+    var cf = ck('xcpt').checked || ck('vwpt').checked || ck('vxpt').checked || ck('vmpt').checked;
+    el('cfip').disabled = !cf; if (!cf) el('cfip').value = '';
+    el('hyjpt').disabled = !ck('hypt').checked; if (!ck('hypt').checked) el('hyjpt').value = '';
+    var alnsOn = el('alns').value === 'y';
+    ck('nvpt').disabled = !alnsOn; pt('nvpt').disabled = !alnsOn || !ck('nvpt').checked;
+    if (!alnsOn){ ck('nvpt').checked = false; pt('nvpt').value = ''; }
+    var subOn = el('sub').value === 'y';
+    el('subid').disabled = !subOn; el('subpt').disabled = !subOn;
+    if (!subOn){ el('subid').value=''; el('subpt').value=''; }
+    var argoOn = el('argoSelect').value !== '';
+    el('agn').disabled = !argoOn; el('agk').disabled = !argoOn;
+    if (!argoOn){ el('agn').value=''; el('agk').value=''; }
+    render();
+  }
+  document.querySelectorAll('input, select').forEach(function(e){
+    e.addEventListener('input', dynamic); e.addEventListener('change', dynamic);
+  });
+  el('argoSelect').addEventListener('change', function(){
+    var v = el('argoSelect').value;
+    if (v === 'vwpt') ck('vwpt').checked = true;
+    if (v === 'vmpt') ck('vmpt').checked = true;
+    dynamic();
+  });
+
+  el('genUuid').addEventListener('click', function(){
+    var u = (crypto.randomUUID ? crypto.randomUUID() :
+      'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c){
+        var r = Math.random()*16|0; return (c==='x'?r:(r&0x3|0x8)).toString(16); }));
+    el('uuid').value = u; render();
+  });
+
+  // 预设
+  var PRESETS = {
+    simple:  {protos:{vlpt:'443', hypt:'8443'}},
+    singbox: {protos:{hypt:'', tupt:'', anpt:'', arpt:'', sspt:''}},
+    full:    {protos:{vlpt:'', xhpt:'', vxpt:'', vwpt:'', xupt:'', xcpt:'', tupt:'', anpt:'', arpt:'', sspt:'', hypt:'', vmpt:'', sopt:''}},
+    argo:    {protos:{vmpt:''}, argo:'vmpt'},
+    cdn:     {protos:{vwpt:'', vmpt:'', vxpt:''}},
+    sub:     {protos:{vlpt:'443', hypt:''}, sub:'y'}
+  };
+  function applyPreset(name){
+    var p = PRESETS[name]; if (!p) return;
+    PROTOS.forEach(function(pr){ ck(pr[0]).checked = false; pt(pr[0]).value=''; });
+    Object.keys(p.protos).forEach(function(k){ ck(k).checked = true; pt(k).value = p.protos[k]; });
+    el('argoSelect').value = p.argo || '';
+    el('sub').value = p.sub || '';
+    action = ''; dynamic();
+    toast('已套用预设，可直接复制命令');
+  }
+  document.querySelectorAll('[data-preset]').forEach(function(b){
+    b.addEventListener('click', function(){ applyPreset(b.getAttribute('data-preset')); });
+  });
+
+  // 快捷命令
+  document.querySelectorAll('[data-cmd]').forEach(function(b){
+    b.addEventListener('click', function(){
+      var cmd = b.getAttribute('data-cmd');
+      if (cmd === 'rep'){ action = 'rep'; render(); toast('已生成 rep 命令（带当前全部变量）'); return; }
+      if (cmd === 'list'){
+        var ip = el('ippz').value;
+        el('output').value = (ip ? 'ippz=' + ip + ' ' : '') + baseCmd() + ' list';
+        toast('已生成 list 命令'); return;
+      }
+      el('output').value = baseCmd() + ' ' + cmd;
+      toast('已生成 ' + cmd + ' 命令');
+    });
+  });
+
+  // 把粘回的命令解析回表单
+  var suppress = false;
+  el('output').addEventListener('input', function(){
+    var text = el('output').value.trim(); if (!text) return;
+    suppress = true;
+    document.querySelector('input[name="commandType"][value="' + (text.indexOf('wget') >= 0 ? 'wget' : 'curl') + '"]').checked = true;
+    var params = {}, re = /(\w+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"']+))/g, mm;
+    while ((mm = re.exec(text)) !== null) params[mm[1]] = mm[2] !== undefined ? mm[2] : (mm[3] !== undefined ? mm[3] : mm[4]);
+    PROTOS.forEach(function(p){
+      if (p[0] in params){ ck(p[0]).checked = true; pt(p[0]).value = params[p[0]]; }
+      else { ck(p[0]).checked = false; pt(p[0]).value = ''; }
+    });
+    OPT_IDS.forEach(function(id){ var e = el(id); if (e) e.value = (id in params) ? params[id] : ''; });
+    el('argoSelect').value = params['argo'] || '';
+    var tail = text.match(/\s(list|del|upx|ups|upa|res|rep)\s*$/);
+    action = tail ? tail[1] : '';
+    suppress = false;
+    dynamic();
+    if (action) el('output').value = (toVars(collect().m) ? toVars(collect().m) + ' ' : '') + baseCmd() + ' ' + action;
+  });
+
+  el('copyBtn').addEventListener('click', async function(){
+    var n = validate(collect().m);
+    if (action === '' && n === 0){ toast('请先至少勾选一个协议'); return; }
+    var t = el('output'); t.select(); t.setSelectionRange(0, 99999);
+    try { await navigator.clipboard.writeText(t.value); toast('已复制到剪贴板'); }
+    catch(e){ document.execCommand('copy'); toast('已复制'); }
+  });
+  el('resetBtn').addEventListener('click', function(){
+    PROTOS.forEach(function(p){ ck(p[0]).checked = false; pt(p[0]).value=''; });
+    OPT_IDS.forEach(function(id){ var e = el(id); if (e) e.value=''; });
+    el('argoSelect').value = ''; action = ''; dynamic(); toast('已重置');
+  });
+
+  dynamic();
+})();
+</script>
+</body>
+</html>
