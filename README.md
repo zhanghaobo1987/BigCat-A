@@ -37,7 +37,7 @@ cd ~/workspace/bigcat-a && python3 -m http.server 8898 --bind 127.0.0.1
 # 浏览器打开 http://127.0.0.1:8898/
 ```
 
-版本源：`VERSION` 文件（当前 0.4.2）。
+版本源：`VERSION` 文件（当前 0.4.3）。
 
 ## 部署点
 

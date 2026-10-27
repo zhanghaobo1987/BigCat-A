@@ -3,7 +3,7 @@
 # 用法：vlpt=443 hypt=8443 ... bash bigcata.sh [list|del|res|rep|upx|ups|upa]
 # 变量与 argosbx 兼容：变量“出现即启用”，值为空表示随机端口。
 export LANG=en_US.UTF-8
-VER="0.4.2"
+VER="0.4.3"
 DIR="$HOME/bigcata"; BIN="$DIR/bin"; CONF="$DIR/conf"; SUBD="$DIR/sub"
 PLAN="$DIR/plan.env"
 URL_RAW="https://raw.githubusercontent.com/zhanghaobo1987/BigCat-A/main/bigcata.sh"
@@ -58,7 +58,8 @@ HAS_SYSTEMD=0; [ -d /run/systemd/system ] && have systemctl && HAS_SYSTEMD=1
 # ---------- 下载内核 ----------
 install_sb(){
   local a=$(arch) v url
-  v=$(gh_latest_tag SagerNet/sing-box); [ -z "$v" ] && v="1.13.19"
+  # 钉版：1.14.1+ 的 Reality 与小火箭不兼容（实测断点），sbv=latest 可强制最新
+  v="${sbv:-1.14.0}"; [ "$v" = latest ] && { v=$(gh_latest_tag SagerNet/sing-box); [ -z "$v" ] && v="1.14.0"; }
   url="https://github.com/SagerNet/sing-box/releases/download/v$v/sing-box-$v-linux-$a.tar.gz"
   say "下载 sing-box v$v ($a)…"; dl "$url" /tmp/sb.tgz || return 1
   extract_tgz /tmp/sb.tgz /tmp && cp /tmp/sing-box-$v-linux-$a/sing-box "$BIN/sb.new" && chmod +x "$BIN/sb.new" && mv -f "$BIN/sb.new" "$BIN/sb" && "$BIN/sb" version | head -1
@@ -66,7 +67,8 @@ install_sb(){
 install_xr(){
   local a=$(arch) v url zip="Xray-linux-64.zip"
   [ "$a" = arm64 ] && zip="Xray-linux-arm64-v8a.zip"
-  v=$(gh_latest_tag XTLS/Xray-core); [ -z "$v" ] && v="26.3.27"
+  # 钉版：26.9+ 的 Reality 与小火箭不兼容（实测 26.7.28 可用），xrv=latest 可强制最新
+  v="${xrv:-26.7.28}"; [ "$v" = latest ] && { v=$(gh_latest_tag XTLS/Xray-core); [ -z "$v" ] && v="26.7.28"; }
   url="https://github.com/XTLS/Xray-core/releases/download/v$v/$zip"
   say "下载 Xray v$v ($a)…"; dl "$url" /tmp/xr.zip || return 1
   rm -rf /tmp/xrun && extract_zip /tmp/xr.zip /tmp/xrun && cp /tmp/xrun/xray "$BIN/xr.new" && chmod +x "$BIN/xr.new" && mv -f "$BIN/xr.new" "$BIN/xr" && "$BIN/xr" version | head -1
@@ -192,9 +194,9 @@ for p in vlpt xhpt vxpt vwpt xupt xcpt vmpt sopt; do [ -n "${!p+x}" ] && NEED_XR
 
 # 每次安装都拉官方最新内核；下载失败才沿用已装版本兜底（无已装版本则报错退出）
 fetch_kernel(){ # $1=显示名 $2=二进制名 $3=安装函数
-  if [ -x "$BIN/$2" ]; then say "更新 $1 到官方最新版（当前：$("$BIN/$2" version 2>/dev/null | head -1)）…"; fi
+  if [ -x "$BIN/$2" ]; then say "更新 $1 到目标版本（当前：$("$BIN/$2" version 2>/dev/null | head -1)）…"; fi
   if $3; then return 0; fi
-  if [ -x "$BIN/$2" ]; then warn "$1 最新版下载失败，沿用现有版本继续安装"; return 0; fi
+  if [ -x "$BIN/$2" ]; then warn "$1 目标版本下载失败，沿用现有版本继续安装"; return 0; fi
   err "$1 下载失败且无可用旧版本"; return 1
 }
 [ "$NEED_SB" = 1 ] && { fetch_kernel sing-box sb install_sb || exit 1; }
